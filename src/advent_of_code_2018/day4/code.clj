@@ -32,7 +32,7 @@
                      :hour (parse-int hour)
                      :minute (parse-int minute)
                      :action (normalized-action action)}]
-           (if guard (assoc base :guard guard) base))
+           (if guard (assoc base :guard (parse-int guard)) base))
         input))
 
 (comment
@@ -75,5 +75,25 @@
                        (update m guard (fnil + 0) s))
                      {}
                      (map shift-sleep shifts)))
-      first
-      parse-int))
+      first))
+
+(defonce problem1
+  (->> (for [[begin & sleep-wakes] shifts
+             :when (= sleepiest-guard (:guard begin))
+             [{s :minute} {w :minute}] (partition 2 sleep-wakes)
+             m (range s w)]
+         m)
+       frequencies
+       (apply max-key second)
+       first
+       (* sleepiest-guard)))
+
+(defonce problem2
+  (->> (for [[begin & sleep-wakes] shifts
+             [{s :minute} {w :minute}] (partition 2 sleep-wakes)
+             m (range s w)]
+         [(:guard begin) m])
+       frequencies
+       (apply max-key second)
+       first
+       (apply *)))
