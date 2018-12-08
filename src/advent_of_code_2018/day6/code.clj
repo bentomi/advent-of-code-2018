@@ -46,7 +46,7 @@
 (defonce grid
   (normalised-grid normalised-input))
 
-(def border
+(defonce border
   (let [[minx miny maxx maxy] (corners normalised-input)]
     (concat (for [y [0 maxy]
                   x (range 0 (inc maxx))]
@@ -55,14 +55,14 @@
                   y (range 0 (inc maxy))]
               [x y]))))
 
-(def infinite-areas
+(defonce infinite-areas
   (set
    (for [coord border
          :let [point-indexes (get-in grid coord)]
          :when (= 1 (count point-indexes))]
      (first point-indexes))))
 
-(def problem1
+(defonce problem1
   (->> (for [row grid
              [point & other-points] row
              :when (not (or (seq other-points) (infinite-areas point)))]
@@ -70,3 +70,13 @@
        frequencies
        (apply max-key second)
        second))
+
+(def problem2
+  (count
+   (let [[_ _ maxx maxy] (corners normalised-input)]
+     (for [y (range 0 (inc maxx))
+           x (range 0 (inc maxy))
+           :let [coord [x y]
+                 d (reduce + 0 (map #(distance coord %) normalised-input))]
+           :when (< d 10000)]
+       coord))))
