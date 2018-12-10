@@ -36,3 +36,38 @@
 
 (def problem1
   (-> input edge-list top-sort clojure.string/join))
+
+(defn end-time [step start-time]
+  (+ start-time 60 (.codePointAt step 0)))
+
+(defn parallel-schedule [full-graph workers]
+  (loop [graph full-graph
+         unblocked (apply sorted-set (no-in-edge graph))
+         in-progress (sorted-set)
+         elapsed 0
+         step-times {}]
+    (cond
+      (and (seq unblocked) (< (count in-progress) workers))
+      (let [v (first unblocked)]
+        (recur graph
+               (disj unblocked v)
+               (conj in-progress [(end-time v elapsed) v])
+               elapsed
+               (assoc step-times v {:start elapsed})))
+      (seq in-progress)
+      (let [ending (first (partition-by first in-progress))
+            end-time (ffirst ending)
+            steps (map second ending)
+            graph' (reduce dissoc graph steps)
+            unblockables (for [s steps, v (graph s)] v)]
+        (recur graph'
+               (into (reduce disj unblocked steps)
+                     (no-in-edge graph' unblockables))
+               (apply disj in-progress ending)
+               end-time
+               (reduce (fn [step-times step]
+                         (update step-times step assoc :end end-time))
+                       step-times
+                       steps)))
+      :else
+      step-times)))
