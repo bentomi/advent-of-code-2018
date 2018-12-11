@@ -38,7 +38,7 @@
   (-> input edge-list top-sort clojure.string/join))
 
 (defn end-time [step start-time]
-  (+ start-time 60 (.codePointAt step 0)))
+  (+ start-time 60 (- (.codePointAt step 0) (int \A) -1)))
 
 (defn parallel-schedule [full-graph workers]
   (loop [graph full-graph
