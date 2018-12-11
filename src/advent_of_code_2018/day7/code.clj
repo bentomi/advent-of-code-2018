@@ -58,11 +58,10 @@
       (let [ending (first (partition-by first in-progress))
             end-time (ffirst ending)
             steps (map second ending)
-            graph' (reduce dissoc graph steps)
-            unblockables (for [s steps, v (graph s)] v)]
+            graph' (reduce dissoc graph steps)]
         (recur graph'
                (into (reduce disj unblocked steps)
-                     (no-in-edge graph' unblockables))
+                     (no-in-edge graph' (mapcat graph steps)))
                (apply disj in-progress ending)
                end-time
                (reduce (fn [step-times step]
@@ -71,3 +70,8 @@
                        steps)))
       :else
       step-times)))
+
+(def problem2
+  (->> (parallel-schedule (edge-list input) 6)
+       (map (comp :end second))
+       (apply max)))
