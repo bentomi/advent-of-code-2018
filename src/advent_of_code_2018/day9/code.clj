@@ -23,7 +23,7 @@
                    scores))
           (let [current' (mod (- current 7) size)
                 win (+ to-play (.get marbles current'))]
-            (.remove marbles current')
+            (.remove marbles ^int current')
             (recur (inc to-play)
                    marbles
                    current'
