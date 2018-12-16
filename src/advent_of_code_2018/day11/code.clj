@@ -27,7 +27,7 @@
   (power-grid input))
 
 (defn field-at [grid x y]
-  (mapv #(subvec % (dec x) (+ x 2)) (subvec grid (dec y) (+ y 2))))
+  (mapv #(subvec % x (+ x 3)) (subvec grid y (+ y 3))))
 
 (defn power-at [grid x y]
   (reduce + (map #(reduce + %) (field-at grid x y))))
@@ -35,8 +35,36 @@
 (defn problem1 []
   (second
    (apply max-key first
-          (for [x (range 1 299)
-                y (range 1 299)]
-            [(power-at grid x y) [x y]]))))
+          (for [x (range 0 298)
+                y (range 0 298)]
+            [(power-at grid x y) [(inc x) (inc y)]]))))
 
-(is (= [22,18] (problem1)))
+(is (= [22 18] (problem1)))
+
+(defn max-power-at
+  ([grid x y]
+   (let [max-size (min (- (-> grid first count) x) (- (count grid) y))]
+     (max-power-at grid x y max-size)))
+  ([grid x y max-size]
+   (let [pxy (get-in grid [y x])]
+     (loop [size 1
+            power pxy
+            [mpower :as max-power] [pxy 1]]
+       (if (>= size max-size)
+         max-power
+         (let [size' (inc size)
+               new-col (map #(get-in grid [% (+ x size)])
+                            (range y (+ y size')))
+               new-row (subvec (grid (+ y size)) x (+ x size'))
+               power' (reduce + power (concat new-col new-row))]
+           (recur size'
+                  power'
+                  (if (> power' mpower) [power' size'] max-power))))))))
+
+(defn problem2 []
+  (apply max-key #(get-in % [2 0])
+         (for [y (range 0 (count grid))
+               x (range 0 (-> grid first count))]
+           [(inc x) (inc y) (max-power-at grid x y)])))
+
+(is (= [234 197 [114 14]] (problem2)))
