@@ -61,21 +61,34 @@
         pos' (move pos dir)]
     [pos' (cart-after cart (get-in tracks pos'))]))
 
-(defn move-carts [tracks carts]
+(defn move-carts [tracks carts crash-fn]
   (reduce (fn [carts [pos :as cart]]
-            (let [[pos' cart'] (move-cart tracks cart)]
-              (if (contains? carts pos')
-                (reduced [:crash pos' carts cart])
-                (assoc (dissoc carts pos) pos' cart'))))
+            (if (contains? carts pos)
+              (let [[pos' cart'] (move-cart tracks cart)]
+                (if (contains? carts pos')
+                  (crash-fn pos' carts cart)
+                  (assoc (dissoc carts pos) pos' cart')))
+              carts))
           carts
           carts))
 
 (defn first-crash [tracks carts]
   (loop [carts carts]
-    (let [carts' (move-carts tracks carts)]
+    (let [carts' (move-carts tracks carts
+                             (fn [pos carts cart] (reduced [:crash pos])))]
       (if (and (vector? carts') (= :crash (carts' 0)) )
         (carts' 1)
         (recur carts')))))
 
 (deftest problem1
   (is (= [92 26] (first-crash (tracks input) (carts input)))))
+
+(defn last-cart [tracks carts]
+  (loop [carts carts]
+    (if (= 1 (count carts))
+      (first carts)
+      (let [remove-carts (fn [pos carts [prev-pos]] (dissoc carts pos prev-pos))]
+        (recur (move-carts tracks carts remove-carts))))))
+
+(deftest problem2
+  (is (= [18 86] (first (last-cart (tracks input) (carts input))))))
