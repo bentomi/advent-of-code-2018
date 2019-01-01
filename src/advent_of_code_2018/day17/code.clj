@@ -1,5 +1,6 @@
 (ns advent-of-code-2018.day17.code
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer [deftest is]]))
 
 (defonce line-pattern #"([xy])=(\d+), ([xy])=(\d+)\.\.(\d+)")
 
@@ -60,26 +61,61 @@
   (let [d (down pos)]
     (cond
       (>= (first d) (count scan)) [:drawn scan]
+      (= wet (get-in scan d)) [:drawn scan]
       (= sand (get-in scan d)) (recur (assoc-in scan d wet) d min-depth)
-      :else (let [[loutcome scan] (spread left scan pos wet)
-                  [routcome scan] (spread right scan pos wet)]
-              (if (some #{:drawn} [loutcome routcome])
+      :else (let [[lres scan] (spread left scan pos wet)
+                  [rres scan] (spread right scan pos wet)]
+              (if (some #{:drawn} [lres rres])
                 [:drawn scan]
                 (let [[_ scan] (spread left scan pos water)
-                      [_ scan] (spread right scan pos water)]
+                      [_ scan] (spread right scan pos water)
+                      scan (assoc-in scan pos water)]
                   (if (below pos min-depth)
                     (recur scan (up pos) min-depth)
                     [:filled scan])))))))
 
-(defn spread [dir scan pos water]
+(defn spread [dir scan pos marker]
   (let [n (dir pos)]
-    (if (blocked scan n)
-      [:filled scan]
-      (let [scan (assoc-in scan n water)
-            nd (down n)]
-        (if (blocked scan nd)
-          (recur dir scan n water)
-          (let [[outcome scan :as tresult] (trickle scan n (inc (first n)))]
-            (if (= outcome :drawn)
-              tresult
-              (recur dir scan n water))))))))
+    (cond
+      (blocked scan n) [:filled scan]
+      (every? #{wet} [marker (get-in scan n)]) [:drawn scan]
+      :else (let [scan (assoc-in scan n marker)
+                  nd (down n)]
+              (if (blocked scan nd)
+                (recur dir scan n marker)
+                (let [[res scan] (trickle scan n (inc (first n)))]
+                  (if (= res :drawn)
+                    [res scan]
+                    (recur dir scan n marker))))))))
+
+(defn count-water [scan water-type]
+  (->> scan
+       (drop-while #(every? (complement #{clay}) %))
+       (apply concat) (filter water-type) count))
+
+(deftest small-test
+  (let [scan (mapv vec ["......+......."
+                        "............#."
+                        ".#..#.......#."
+                        ".#..#..#......"
+                        ".#..#..#......"
+                        ".#.....#......"
+                        ".#.....#......"
+                        ".#######......"
+                        ".............."
+                        ".............."
+                        "....#.....#..."
+                        "....#.....#..."
+                        "....#.....#..."
+                        "....#######..."])
+        [res scan] (trickle scan [0 6] 0)]
+    (is (= :drawn res))
+    (is (= 57 (count-water scan #{wet water})))
+    (is (= 29 (count-water scan #{water})))))
+
+(let [[res scan] (trickle scan spring 0)]
+  (deftest problem1-test
+    (is (= :drawn res))
+    (is (= 39162 (count-water scan #{wet water}))))
+  (deftest problem2-test
+    (is (= 32047 (count-water scan #{water})))))
